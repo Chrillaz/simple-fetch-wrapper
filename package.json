@@ -1,0 +1,26 @@
+{
+  "name": "simple-fetch-wrapper",
+  "version": "1.0.4",
+  "description": "Fetch wrapper",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chrillaz/simple-fetch-wrapper.git"
+  },
+  "keywords": [
+    "fetch",
+    "http",
+    "ajax"
+  ],
+  "author": "Christoffer Öhman",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Chrillaz/simple-fetch-wrapper/issues"
+  },
+  "homepage": "https://github.com/Chrillaz/simple-fetch-wrapper#readme"
+}
