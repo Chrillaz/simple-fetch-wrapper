@@ -1,9 +1,9 @@
 {
   "name": "simple-fetch-wrapper",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "description": "Fetch wrapper",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc --p ./tsconfig.json",
     "watch": "tsc --p . --watch",
@@ -28,6 +28,6 @@
     "typescript": "^3.9.5"
   },
   "files": [
-    "dist"
+    "dist/"
   ]
 }
