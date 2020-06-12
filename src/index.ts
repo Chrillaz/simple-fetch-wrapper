@@ -138,7 +138,7 @@ class Http {
   }
 }
 
-export const http = Http.getInstance();
+export default Http.getInstance();
 
 export const setApiUrl = (url: string): void => Http.setBaseUrl(url);
 

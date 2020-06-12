@@ -1,6 +1,6 @@
 {
   "name": "simple-fetch-wrapper",
-  "version": "1.0.5",
+  "version": "1.0.12",
   "description": "Fetch wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,5 +26,8 @@
   "homepage": "https://github.com/Chrillaz/simple-fetch-wrapper#readme",
   "devDependencies": {
     "typescript": "^3.9.5"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
