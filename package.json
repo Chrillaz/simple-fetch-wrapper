@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc --p ./tsconfig.json",
+    "watch": "tsc --p . --watch",
     "prepublish": "npm run build"
   },
   "repository": {
@@ -22,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/Chrillaz/simple-fetch-wrapper/issues"
   },
-  "homepage": "https://github.com/Chrillaz/simple-fetch-wrapper#readme"
+  "homepage": "https://github.com/Chrillaz/simple-fetch-wrapper#readme",
+  "devDependencies": {
+    "typescript": "^3.9.5"
+  }
 }
