@@ -142,4 +142,4 @@ export const http = Http.getInstance();
 
 export const setApiUrl = (url: string): void => Http.setBaseUrl(url);
 
-export const getApiUrl = (path: string): string => Http.getBaseUrl(path)
+export const getApiUrl = (path: string): string => Http.getBaseUrl(path);

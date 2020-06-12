@@ -12,7 +12,7 @@ For own purposes initially...
 ### Example
 
 ```
-   import http, { setApiUrl, getApiUrl } from 'simple-fetch-wrapper'
+   import {http, setApiUrl, getApiUrl } from 'simple-fetch-wrapper'
 
    setApiUrl(url: string);
 
