@@ -7,12 +7,12 @@ For own purposes initially...
 ### Use
 ```npm i simple-fetch-wrapper```
 
-```ìmport { http } from 'simple-fetch-wrapper'```
+```ìmport http from '../../node_modules/simple-fetch-wrapper/dist/index'```
 
 ### Example
 
 ```
-   import http, { setApiUrl, getApiUrl } from ''../../node_modules/simple-fetch-wrapper/dist/index''
+   import http, { setApiUrl, getApiUrl } from '../../node_modules/simple-fetch-wrapper/dist/index'
 
    setApiUrl(url: string);
 
