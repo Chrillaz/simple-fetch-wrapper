@@ -1,3 +1,40 @@
+class HttpEmitter {
+
+  private listeners: {[key: string]: Function[]} = {};
+
+  public on (event: string, fn: Function) {
+
+    this.listeners[event] = this.listeners[event] || [];
+
+    this.listeners[event].push(fn);
+
+    return this;
+  }
+
+  public emit (event: string, {...args}: any) {
+
+    if (!this.listeners[event]) {
+
+      return false;
+    }
+
+    this.listeners[event].forEach(f => f({...args}));
+  }
+
+  public detach (event: string, fn: Function) {
+
+    return this.listeners[event].find((e, i) => {
+      
+      if (e === fn) {
+
+        this.listeners[event].splice(i, 1);
+
+        return e;
+      }
+    });
+  }
+}
+
 class HttpSuccessResponse {
 
   success!: boolean;
@@ -34,11 +71,15 @@ class HttpErrorResponse {
   }
 }
 
-class Http {
+class Http extends HttpEmitter {
 
   private baseUrl: string = '';
 
   public static instance: Http;
+
+  private constructor () {
+    super();
+  }
 
   private buildQueryStr (params: {[key: string]: string}): string {
 
@@ -90,18 +131,24 @@ class Http {
     }
   }
 
-  public async get (url: string, args?: {params: {};}): Promise<HttpSuccessResponse | HttpErrorResponse> {
+  public async get (url: string, args?: {params: {}}): Promise<HttpSuccessResponse | HttpErrorResponse> {
+
+    this.emit('loading', true);
 
     const options = {
       method: 'GET'
     };
     
-    if (args?.params) {
+    if (args && args.params) {
       
       url = url + this.buildQueryStr(args.params);
     }
 
-    return await this.makeRequest(url, {...options});
+    const response = await this.makeRequest(url, {...options});
+
+    this.emit('loading', false); 
+
+    return response;
   }
 
   public async post (url: string, body: {}, headers?: {}): Promise<HttpSuccessResponse | HttpErrorResponse> {
