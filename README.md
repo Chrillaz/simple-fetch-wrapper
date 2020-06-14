@@ -5,9 +5,13 @@ Simple wrapper around fetch.
 For own purposes initially...
 
 ### Use
-```npm i simple-fetch-wrapper```
+```
+npm i simple-fetch-wrapper
+```
 
-```ìmport http from '../../node_modules/simple-fetch-wrapper/dist/index'```
+```
+import http from '../../node_modules/simple-fetch-wrapper/dist/index'
+```
 
 ### Example
 
@@ -17,6 +21,13 @@ For own purposes initially...
    setApiUrl(url: string);
 
    const url = getApiUrl('/api/v1/endpoint');
+
+   http.intercept(requestConfig => {
+
+      console.log(requestConfig);
+
+      return requestConfig;
+   })
 
    http.on('loading', (status: boolean) => console.log(status));
 

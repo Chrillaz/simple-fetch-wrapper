@@ -1,37 +1,47 @@
+export interface RequestConfig {
+  readonly method: string;
+  headers?: {[key: string]: string};
+  params?: {[key: string]: string};
+  body?: {[key: string]: any} | string;
+}
+
+export type Listener = (status: boolean) => any;
+
+export type HTTPInterceptor = (config: Partial<RequestConfig>) => Partial<RequestConfig>;
+
 class HttpEmitter {
 
-  private listeners: {[key: string]: Function[]} = {};
+  protected listeners: {[key: string]: Listener[] | HTTPInterceptor} = {};
 
-  public on (event: string, fn: Function) {
+  protected emit (event: string, args: any) {
+
+    return this.listeners[event].length > 0
+      ? (this.listeners[event] as Listener[]).forEach(f => f(args))
+      : false;
+  }
+
+  public intercept (fn: HTTPInterceptor) {
+
+    return this.listeners.beforeRequest = fn;
+  }
+
+  public on (event: 'loading', fn: Listener) {
 
     this.listeners[event] = this.listeners[event] || [];
 
-    this.listeners[event].push(fn);
+    (this.listeners[event] as Listener[]).push(fn);
 
     return this;
   }
 
-  public emit (event: string, {...args}: any) {
+  public detach (event: string, fn: Listener) {
 
-    if (!this.listeners[event]) {
-
-      return false;
-    }
-
-    this.listeners[event].forEach(f => f({...args}));
-  }
-
-  public detach (event: string, fn: Function) {
-
-    return this.listeners[event].find((e, i) => {
+    const index = (this.listeners[event] as Listener[]).indexOf(fn);
       
-      if (e === fn) {
+    if (index > -1) {
 
-        this.listeners[event].splice(i, 1);
-
-        return e;
-      }
-    });
+      (this.listeners[event] as Listener[]).splice(index, 1);
+    }
   }
 }
 
@@ -83,33 +93,24 @@ class Http extends HttpEmitter {
 
   private buildQueryStr (params: {[key: string]: string}): string {
 
-    let str = '';
-
-    Object.keys(params).forEach((key, i) => {
-
-      str = str + `${i === 0 ? '?' : '&'}${key}=${params[key]}`;
-    });
-
-    return str;
+    return Object.keys(params).reduce((acc, curr, i) => 
+      acc + `${i === 0 ? '?' : '&'}${curr}=${params[curr]}`, '');
   }
 
-  private async handleResponse (response: any) {
+  private async handleResponse (response: Response) {
 
     const json = await response.json();
 
-    if (!response.ok) {
-
-      return JSON.stringify(new HttpErrorResponse(response, json));
-    }
-
-    return JSON.stringify(new HttpSuccessResponse(response, json));
+    return !response.ok
+      ? JSON.stringify(new HttpErrorResponse(response, json))
+      : JSON.stringify(new HttpSuccessResponse(response, json));
   }
 
   private handleError (error: string) {
 
     try {
 
-      return JSON.parse(error)
+      return JSON.parse(error);
     } catch (err) {
 
       return error;
@@ -120,14 +121,13 @@ class Http extends HttpEmitter {
 
     try {
 
-      const result = await fetch(url, {...params}),
-            response = await this.handleResponse(result),
-            json = await JSON.parse(response);
+      const response = await fetch(url, {...params}),
+            result = await this.handleResponse(response);
             
-      return await json;
+      return JSON.parse(result);
     } catch (error) {
 
-      return await this.handleError(error);
+      return this.handleError(error);
     }
   }
 
@@ -135,16 +135,17 @@ class Http extends HttpEmitter {
 
     this.emit('loading', true);
 
-    const options = {
+    const requestConfig = (this.listeners.beforeRequest as Function)({
+      params: args?.params,
       method: 'GET'
-    };
+    });
     
-    if (args && args.params) {
+    if (requestConfig.params) {
       
-      url = url + this.buildQueryStr(args.params);
+      url = url + this.buildQueryStr(requestConfig.params);
     }
 
-    const response = await this.makeRequest(url, {...options});
+    const response = await this.makeRequest(url, {method: requestConfig.method});
 
     this.emit('loading', false); 
 
@@ -153,15 +154,21 @@ class Http extends HttpEmitter {
 
   public async post (url: string, body: {}, headers?: {}): Promise<HttpSuccessResponse | HttpErrorResponse> {
 
-    const options = {
+    this.emit('loading', true);
+
+    const requestConfig = (this.listeners.beforeRequest as HTTPInterceptor)({
       method: 'POST',
+      body: JSON.stringify(body),
       headers: headers ? headers : {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    }
+      }
+    });
 
-    return await this.makeRequest(url, {...options});
+    const response = this.makeRequest(url, {...requestConfig});
+
+    this.emit('loading', false);
+
+    return response;
   }
 
   public static setBaseUrl (url: string): void {
