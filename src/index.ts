@@ -169,7 +169,7 @@ class Http extends HttpEmitter {
     
     const queryStr = this.makeQueryStr(requestConfig.params);
     
-    requestConfig.params = undefined;
+    delete requestConfig.params;
 
     requestConfig.headers = this.setHeaders(requestConfig.headers as {[key: string]: string});
     
