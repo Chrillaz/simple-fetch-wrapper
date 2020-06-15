@@ -1,8 +1,10 @@
 export interface RequestConfig {
   readonly method: string;
   headers?: {[key: string]: string} | Headers | undefined;
-  params?: {[key: string]: string} | undefined;
+  mode?: any,
+  cache?: any,
   body?: {[key: string]: any} | string;
+  params?: {[key: string]: string} | undefined;
 }
 
 export type Listener = (status: boolean) => any;
@@ -156,34 +158,36 @@ class Http extends HttpEmitter {
     }
   }
 
-  public async get (url: string, args?: {params: {}}): Promise<HttpSuccessResponse | HttpErrorResponse> {
+  public async get (url: string, args?: RequestConfig): Promise<HttpSuccessResponse | HttpErrorResponse> {
 
     (this.listeners.isFetching as Function)(true);
 
-    let requestConfig = (this.listeners.intercept as Function)({
+    let requestConfig = <Partial<RequestConfig>>(this.listeners.intercept as Function)({
       params: args?.params,
       method: 'GET'
     });
     
-    requestConfig = this.makeQueryStr(requestConfig.params);
+    const queryStr = this.makeQueryStr(requestConfig.params);
     
-    requestConfig.headers = this.setHeaders(requestConfig.headers);
+    requestConfig.params = undefined;
+
+    requestConfig.headers = this.setHeaders(requestConfig.headers as {[key: string]: string});
     
-    const response = await this.makeRequest(url, {method: requestConfig.method, headers: requestConfig.headers});
+    const response = await this.makeRequest(url + queryStr, {...requestConfig});
 
     (this.listeners.isFetching as Function)(false);
 
     return response;
   }
 
-  public async post (url: string, body: {}, headers?: RequestConfig['headers']): Promise<HttpSuccessResponse | HttpErrorResponse> {
+  public async post (url: string, args?: RequestConfig): Promise<HttpSuccessResponse | HttpErrorResponse> {
 
     (this.listeners.isFetching as Function)(true);
 
     const requestConfig = (this.listeners.intercept as HTTPInterceptor)({
       method: 'POST',
-      body: JSON.stringify(body),
-      headers: headers
+      body: JSON.stringify(args?.body),
+      headers: args?.headers
     });
 
     requestConfig.headers = this.setHeaders(requestConfig.headers as {[key: string]: string});
