@@ -4,6 +4,8 @@ Simple wrapper around fetch.
 
 For own purposes initially...
 
+GET and POST 
+
 ### Use
 ```
 npm i simple-fetch-wrapper

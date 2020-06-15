@@ -7,7 +7,7 @@ export interface RequestConfig {
   params?: {[key: string]: string | number} | undefined;
 }
 
-export type Listener = (status: boolean) => any;
+export type Listener = (data: any) => any;
 
 export type HTTPInterceptor = (config: Partial<RequestConfig>) => Partial<RequestConfig>;
 
