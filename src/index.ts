@@ -1,10 +1,10 @@
 export interface RequestConfig {
-  readonly method: string;
+  method?: string;
   headers?: {[key: string]: string} | Headers | undefined;
   mode?: any,
   cache?: any,
   body?: {[key: string]: any} | string;
-  params?: {[key: string]: string} | undefined;
+  params?: {[key: string]: string | number} | undefined;
 }
 
 export type Listener = (status: boolean) => any;
@@ -113,12 +113,16 @@ class Http extends HttpEmitter {
     }
   }
 
-  private makeQueryStr (params: undefined | {[key: string]: string}): string {
+  private makeQueryStr (params: undefined | RequestConfig['params']): string {
 
     if (params != undefined) {
 
-      return Object.keys(params).reduce((acc, curr, i) => 
-        acc + `${i === 0 ? '?' : '&'}${curr}=${params[curr]}`, '');
+      return Object.keys(params).reduce((acc, curr, i) => {
+
+        const val = typeof params[curr] === 'string' ? params[curr] : '' + params[curr];
+        
+        return acc + `${i === 0 ? '?' : '&'}${curr}=${val}`;
+      }, '');
     }
 
     return '';
@@ -158,7 +162,7 @@ class Http extends HttpEmitter {
     }
   }
 
-  public async get (url: string, args?: RequestConfig): Promise<HttpSuccessResponse | HttpErrorResponse> {
+  public async get (url: string, args?: Partial<RequestConfig>): Promise<HttpSuccessResponse | HttpErrorResponse> {
 
     (this.listeners.isFetching as Function)(true);
 
@@ -180,7 +184,7 @@ class Http extends HttpEmitter {
     return response;
   }
 
-  public async post (url: string, args?: RequestConfig): Promise<HttpSuccessResponse | HttpErrorResponse> {
+  public async post (url: string, args?: Partial<RequestConfig>): Promise<HttpSuccessResponse | HttpErrorResponse> {
 
     (this.listeners.isFetching as Function)(true);
 
