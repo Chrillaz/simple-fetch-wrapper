@@ -29,11 +29,16 @@ import http from '../../node_modules/simple-fetch-wrapper/dist/index'
       return requestConfig;
    })
 
-   http.on('loading', (status: boolean) => console.log(status));
+   http.isFetching(status: boolean) => console.log(status));
 
-   http.detach('loading', Function);
+   http.on('customEvent', (data) => console.log(data));
+
+   http.emit('customEvent', data);
+
+   http.detach('customEvent', Function);
    
    const response = await http.get(url, args?: {params: {key: value}})
 
    const response = await http.post(url, body: {key: value}, headers?: {key: value});
 ```
+
