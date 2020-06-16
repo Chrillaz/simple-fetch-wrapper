@@ -25,7 +25,8 @@
   },
   "homepage": "https://github.com/Chrillaz/simple-fetch-wrapper#readme",
   "devDependencies": {
-    "typescript": "^3.9.5"
+    "typescript": "^3.9.5",
+    "typescript-bundle": "^1.0.16"
   },
   "files": [
     "dist/"
