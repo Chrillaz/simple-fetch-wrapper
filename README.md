@@ -12,21 +12,25 @@ npm i simple-fetch-wrapper
 ```
 
 ```
-import http from '../../node_modules/simple-fetch-wrapper/dist/index'
+import http from 'simple-fetch-wrapper'
 ```
 
 ### Example
 
 ```
-   import http, { setApiUrl, getApiUrl } from '../../node_modules/simple-fetch-wrapper/dist/index'
+   import http, { setApiUrl, getApiUrl, setDefaultContentType } from 'simple-fetch-wrapper'
 
    setApiUrl(url: string);
+
+   setDefaultContentType('application/json');
 
    const url = getApiUrl('/api/v1/endpoint');
 
    http.intercept(requestConfig => {
 
       console.log(requestConfig);
+
+      requestConfig.headers.append('Authorization', `Bearer ${token}`);
 
       return requestConfig;
    })
