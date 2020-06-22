@@ -13,12 +13,12 @@ describe('http', () => {
 });
 
 describe('conert object to string extention', () => {
-  const instance = http
-  // expect(instance.)
+  const instance = TestHttp.getInstance()
+  // expect(instance.s)
 })
 
 class TestHttp extends Http {
   public makeQueryStr_ (params: undefined | RequestConfig['params']): string {
-    return 'foo'
+    return this.makeQueryStr(params)
   }
 }

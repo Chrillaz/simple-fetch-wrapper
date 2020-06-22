@@ -47,9 +47,9 @@ export class HttpErrorResponse {
 
 class HttpEmitter {
 
-  protected listeners: {[key: string]: Function[] | (HTTPInterceptor | Function)} = {};
-
-  protected emit (event: string, args: any) {
+  public listeners: {[key: string]: Function[] | (HTTPInterceptor | Function)} = {};
+  
+  public emit (event: string, args: any) {
 
     return this.listeners[event].length > 0
       ? (this.listeners[event] as Function[]).forEach(f => f(args))
@@ -60,7 +60,7 @@ class HttpEmitter {
   
   public intercept (fn: HTTPInterceptor) {
 
-    return this.listeners.intercept = fn;
+    return this.listeners.interceptor = fn;
   }
 
   public isFetching (fn: (status: boolean) => boolean) {
@@ -100,22 +100,7 @@ export class Http extends HttpEmitter {
     super();
   }
 
-  protected makeQueryStr (params: undefined | RequestConfig['params']): string {
-
-    if (params != undefined) {
-
-      return Object.keys(params).reduce((acc, curr, i) => {
-
-        const val = typeof params[curr] === 'string' ? params[curr] : '' + params[curr];
-        
-        return acc + `${i === 0 ? '?' : '&'}${curr}=${val}`;
-      }, '');
-    }
-
-    return '';
-  }
-
-  private async handleResponse (response: Response) {
+  public async handleResponse (response: Response) {
 
     const json = await response.json();
 
@@ -124,7 +109,7 @@ export class Http extends HttpEmitter {
       : JSON.stringify(new HttpSuccessResponse(response, json));
   }
 
-  private handleError (error: string) {
+  public handleError (error: string) {
 
     try {
 
@@ -133,55 +118,6 @@ export class Http extends HttpEmitter {
 
       return error;
     }
-  }
-
-  private async makeRequest (request: Request) {
-
-    try {
-
-      const response = await fetch(request),
-            result = await this.handleResponse(response);
-            
-      return JSON.parse(result);
-    } catch (error) {
-
-      return this.handleError(error);
-    }
-  }
-
-  public async get (url: string, args?: Partial<RequestConfig>): Promise<HttpSuccessResponse | HttpErrorResponse> {
-
-    (this.listeners.isFetching as Function)(true);
-
-    const requestConf = new Request(url + this.makeQueryStr(args?.params)),
-
-          request = (this.listeners.intercept as HTTPInterceptor)(requestConf),
-    
-          response = await this.makeRequest(request);
-
-    (this.listeners.isFetching as Function)(false);
-
-    return response;
-  }
-
-  public async post (url: string, args?: Partial<RequestConfig>): Promise<HttpSuccessResponse | HttpErrorResponse> {
-
-    (this.listeners.isFetching as Function)(true);
-
-    const requestConf = new Request(url, {method: 'POST', body: JSON.stringify(args?.body)});
-
-    args && args.headers
-      ? Object.keys(args.headers).forEach(property => 
-        requestConf.headers.append(property, (args.headers as {[key: string]: string})[property]))
-      : requestConf.headers.append('Content-Type', this.defaultContentType)
-
-    const request = (this.listeners.intercept as HTTPInterceptor)(requestConf);
-
-    const response = await this.makeRequest(request);
-
-    (this.listeners.isFetching as Function)(false);
-
-    return response;
   }
 
   public static setBaseUrl (url: string): void {
@@ -215,7 +151,91 @@ export class Http extends HttpEmitter {
   }
 }
 
-export default Http.getInstance();
+const makeQueryStr = (params: undefined | RequestConfig['params']): string => {
+
+  if (params != undefined) {
+
+    return Object.keys(params).reduce((acc, curr, i) => {
+
+      const val = typeof params[curr] === 'string' ? params[curr] : '' + params[curr];
+      
+      return acc + `${i === 0 ? '?' : '&'}${curr}=${val}`;
+    }, '');
+  }
+
+  return '';
+}
+
+interface RequestParams {
+  request: Request;
+  context: Http;
+}
+
+type HttpRequest = (url: string, args: Partial<RequestConfig>) => Promise<HttpSuccessResponse | HttpErrorResponse>;
+
+const makeRequest = async (params: RequestParams): Promise<HttpSuccessResponse | HttpErrorResponse> => {
+  
+  const {context, request} = params;
+  
+  const requestObj = (context.listeners.intercept as HTTPInterceptor)(request);
+
+  try {
+
+    const response = await fetch(requestObj),
+          result = await context.handleResponse(response);
+          
+    return JSON.parse(result);
+  } catch (error) {
+
+    return context.handleError(error);
+  } 
+}
+
+class HttpRequestConstructor {
+
+  method!: string;
+
+  url!: string;
+
+  headers?: {[key: string]: string};
+
+  mode?: any;
+
+  cache?: any;
+
+  body?: string;
+
+  constructor (args?: Partial<HttpRequestConstructor>) {
+
+    const headers = new Headers();
+
+    if (args && args.headers) {
+      
+      for (const contentType in args.headers) {
+        
+        headers.append(contentType, args.headers[contentType]);
+      }
+    }
+
+    if (args && args.body) {
+      
+      args.body = JSON.stringify(args.body);
+    }
+
+    if (args && args.params) {
+
+      
+    }
+
+    Object.assign(this, args);
+  }
+}
+export default {
+
+  get: async (url, args) => await makeRequest({context: Http.getInstance(), request: new Request(url + makeQueryStr(args?.params))}), 
+
+  post: async (url, args) => await makeRequest({context: Http.getInstance(), request: new Request(url, {method: 'POST', body: JSON.stringify(args?.body)})})
+} as {[key: string]: HttpRequest}
 
 export const setApiUrl = (url: string): void => Http.setBaseUrl(url);
 
