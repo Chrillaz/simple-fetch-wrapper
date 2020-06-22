@@ -88,7 +88,7 @@ class HttpEmitter {
   }
 }
 
-class Http extends HttpEmitter {
+export class Http extends HttpEmitter {
 
   private baseUrl: string = '';
 
@@ -96,11 +96,11 @@ class Http extends HttpEmitter {
 
   public static instance: Http;
 
-  private constructor () {
+  protected constructor () {
     super();
   }
 
-  private makeQueryStr (params: undefined | RequestConfig['params']): string {
+  protected makeQueryStr (params: undefined | RequestConfig['params']): string {
 
     if (params != undefined) {
 
