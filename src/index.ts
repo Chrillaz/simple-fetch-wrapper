@@ -1,13 +1,13 @@
 export interface RequestConfig {
   method?: string;
-  headers?: {[key: string]: string} | undefined;
+  headers?: {[key: string]: string} | Headers;
   mode?: any,
   cache?: any,
   body?: {[key: string]: any} | string;
   params?: {[key: string]: string | number} | undefined;
 }
 
-export type HTTPInterceptor = (config: Request) => Request;
+export type HTTPInterceptor = (config: HttpRequestInit) => HttpRequestInit;
 
 export class HttpSuccessResponse {
 
@@ -151,7 +151,28 @@ export class Http extends HttpEmitter {
   }
 }
 
-const makeQueryStr = (params: undefined | RequestConfig['params']): string => {
+interface RequestParams {
+  instance: Http;
+  request: HttpRequestInit;
+}
+
+type HttpRequest = (url: string, args: Partial<RequestConfig>) => Promise<HttpSuccessResponse | HttpErrorResponse>;
+
+const makeRequest = async (params: RequestParams): Promise<HttpSuccessResponse | HttpErrorResponse> => {
+
+  try {
+
+    const response = await fetch(new Request(params.request.url, params.request)),
+          result = await params.instance.handleResponse(response);
+          
+    return JSON.parse(result);
+  } catch (error) {
+
+    return params.instance.handleError(error);
+  } 
+}
+
+const makeQueryStr = (params: undefined | RequestConfig['params']): string =>  {
 
   if (params != undefined) {
 
@@ -166,75 +187,59 @@ const makeQueryStr = (params: undefined | RequestConfig['params']): string => {
   return '';
 }
 
-interface RequestParams {
-  request: Request;
-  context: Http;
-}
-
-type HttpRequest = (url: string, args: Partial<RequestConfig>) => Promise<HttpSuccessResponse | HttpErrorResponse>;
-
-const makeRequest = async (params: RequestParams): Promise<HttpSuccessResponse | HttpErrorResponse> => {
-  
-  const {context, request} = params;
-  
-  const requestObj = (context.listeners.intercept as HTTPInterceptor)(request);
-
-  try {
-
-    const response = await fetch(requestObj),
-          result = await context.handleResponse(response);
-          
-    return JSON.parse(result);
-  } catch (error) {
-
-    return context.handleError(error);
-  } 
-}
-
-class HttpRequestConstructor {
+class HttpRequestInit implements RequestConfig {
 
   method!: string;
 
   url!: string;
 
-  headers?: {[key: string]: string};
+  headers?: Headers;
+
+  body?: string;
 
   mode?: any;
 
   cache?: any;
 
-  body?: string;
+  params?: {[key: string]: string};
 
-  constructor (args?: Partial<HttpRequestConstructor>) {
+  constructor (url: string, args?: Partial<RequestConfig>) {
 
-    const headers = new Headers();
-
+    const instance = Http.getInstance();
+    
     if (args && args.headers) {
       
+      const headers = new Headers();
+
       for (const contentType in args.headers) {
         
-        headers.append(contentType, args.headers[contentType]);
+        headers.append(contentType, (args.headers as {[key: string]: string})[contentType]);
       }
-    }
 
-    if (args && args.body) {
-      
-      args.body = JSON.stringify(args.body);
-    }
-
-    if (args && args.params) {
-
-      
+      args.headers = headers;
     }
 
     Object.assign(this, args);
+
+    const init = (instance.listeners.interceptor as HTTPInterceptor)(this);
+
+    if (this.body != undefined) {
+      
+      this.body = JSON.stringify(this.body);
+    }
+
+    if (this.params != undefined) {
+
+      this.url = url + makeQueryStr(this.params);
+    }
   }
 }
+
 export default {
 
-  get: async (url, args) => await makeRequest({context: Http.getInstance(), request: new Request(url + makeQueryStr(args?.params))}), 
+  get: async (url, args) => await makeRequest({instance: Http.getInstance(), request: new HttpRequestInit(url, args)}), 
 
-  post: async (url, args) => await makeRequest({context: Http.getInstance(), request: new Request(url, {method: 'POST', body: JSON.stringify(args?.body)})})
+  post: async (url, args) => await makeRequest({instance: Http.getInstance(), request: new HttpRequestInit(url, args)})
 } as {[key: string]: HttpRequest}
 
 export const setApiUrl = (url: string): void => Http.setBaseUrl(url);
