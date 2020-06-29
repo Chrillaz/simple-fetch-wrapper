@@ -1,53 +1,55 @@
-export interface RequestConfig {
-  method?: string;
-  headers?: {[key: string]: string} | Headers;
-  mode?: any,
-  cache?: any,
-  body?: {[key: string]: any} | string;
-  params?: {[key: string]: string | number} | undefined;
+export interface HttpInstance {
+  baseUrl: string;
+  defaultContentType: string;
+  setBaseUrl: (url: string) => void;
+  getBaseUrl: (extention: string) => string;
+  setDefaultContentType: (type: string) => void;
+  getDefaultContentType: () => string;
+  makeRequest: (request: RequestInit) => Promise<HttpResponseObject>;
+  get: (url: string, args: RequestInit) => Promise<HttpResponseObject>;
+  post: (url: string, args: RequestInit) => Promise<HttpResponseObject>;
 }
 
-export type HTTPInterceptor = (config: HttpRequestInit) => HttpRequestInit;
-
-export class HttpSuccessResponse {
-
-  success!: boolean;
-
-  status!: number;
-
-  data!: any;
-
-  constructor (response: Response, json: any) {
-
-    this.success = response.ok;
-
-    this.status = response.status;
-
-    this.data = json
-  }
+export interface RequestInit {
+  url: string;
+  method: string;
+  headers?: Headers | {[key: string]: string};
+  params?: {[key: string]: string};
+  body?: string;
+  cache?: any;
+  mode?: any;
 }
 
-export class HttpErrorResponse {
+export interface HttpResponseObject {
+  success: boolean; 
+  status: number; 
+  data?: any; 
+  statusText?: string
+}
 
-  success!: boolean;
+export type Listeners = {[key: string]: Function[] | (HTTPInterceptor | Function)};
 
-  status!: number;
+export type HTTPInterceptor = (config: RequestInit) => RequestInit;
 
-  statusText: string;
+interface HttpRequestInit extends RequestInit {};
+
+interface HttpResponse extends HttpResponseObject {}
+
+class HttpResponse {
 
   constructor (response: Response, json: any) {
+    
+    Object.assign(this, response);
 
-    this.success = response.ok;
-
-    this.status = response.status;
-
-    this.statusText = response.statusText ? response.statusText : json.error || '';
+    this.success
+      ? this.data = json
+      : this.statusText = response.statusText ? response.statusText : json.error || '';
   }
 }
 
 class HttpEmitter {
 
-  public listeners: {[key: string]: Function[] | (HTTPInterceptor | Function)} = {};
+  public listeners: Listeners = {};
   
   public emit (event: string, args: any) {
 
@@ -55,10 +57,8 @@ class HttpEmitter {
       ? (this.listeners[event] as Function[]).forEach(f => f(args))
       : false;
   }
-
-  public constructor() {}
   
-  public intercept (fn: HTTPInterceptor) {
+  public interceptor (fn: HTTPInterceptor) {
 
     return this.listeners.interceptor = fn;
   }
@@ -81,171 +81,122 @@ class HttpEmitter {
 
     const index = (this.listeners[event] as Function[]).indexOf(fn);
       
-    if (index > -1) {
+    return index > -1
+      ? (this.listeners[event] as Function[]).splice(index, 1)
+      : false;
+  }
+}
 
-      (this.listeners[event] as Function[]).splice(index, 1);
+class HttpRequestInit {
+
+  constructor (listeners: Listeners, url: string, init?: RequestInit) {
+
+    if (init && listeners.interceptor != undefined) {
+      
+      init = (listeners.interceptor as HTTPInterceptor)(init);
+    }
+
+    Object.assign(this, init);
+
+    if (init && init.headers != undefined) {
+
+      this.headers = new Headers();
+
+      for (const property in init.headers) {
+
+        this.headers.append(property, (init.headers as {[key: string]: string})[property]);
+      }
+    }
+
+    if (init && init.params != undefined) {
+
+      this.url = url + Object.keys(init.params).reduce((acc, curr, index) => 
+        acc + `${index === 0 ? '?' : '&'}${curr}=${'' + (init?.params as {[key: string]: string})[curr]}`, '');
+    }
+
+    if (init && init.body != undefined) {
+
+      this.body = JSON.stringify(init.body);
     }
   }
 }
 
 export class Http extends HttpEmitter {
 
-  private baseUrl: string = '';
+  baseUrl = '';
 
-  private defaultContentType: string = 'application/json';
+  defaultContentType = 'application/json';
 
-  public static instance: Http;
+  static instance: Http;
 
-  protected constructor () {
+  private constructor () {
+
     super();
   }
 
-  public async handleResponse (response: Response) {
+  setBaseUrl (url: string): void {
 
-    const json = await response.json();
-
-    return !response.ok
-      ? JSON.stringify(new HttpErrorResponse(response, json))
-      : JSON.stringify(new HttpSuccessResponse(response, json));
+    this.baseUrl = url;
   }
 
-  public handleError (error: string) {
+  getBaseUrl (extention?: string): string {
+
+    if (extention != undefined) {
+
+      return this.baseUrl.charAt(this.baseUrl.length - 1) === '/'
+        ? this.baseUrl + extention
+        : this.baseUrl + '/' + extention;
+    }
+
+    return this.baseUrl;
+  }
+
+  setDefaultContentType (type: string): void {
+
+    this.defaultContentType = type;
+  }
+
+  getDefaultContentType (): string {
+
+    return this.defaultContentType;
+  }
+
+  async makeRequest (request: RequestInit): Promise<HttpResponse> {
 
     try {
 
-      return JSON.parse(error);
-    } catch (err) {
+      const response = await fetch(new Request(request.url, request)),
+            json = await response.json();
+            
+      return JSON.parse(JSON.stringify(new HttpResponse(response, json)));
+    } catch (error) {
 
-      return error;
-    }
-  }
+      try {
 
-  public static setBaseUrl (url: string): void {
-
-    Http.instance.baseUrl = url;
-  }
-
-  public static getBaseUrl (path: string): string {
-
-    return Http.instance.baseUrl + path + '/';
-  }
-
-  public static setDefaultContentType (contentType: string): void {
-     
-    Http.instance.defaultContentType = contentType;
-  }
-
-  public static getDefaultContentType (): string {
-
-    return Http.instance.defaultContentType;
-  }
-
-  public static getInstance () {
-
-    if (!Http.instance) {
-
-      return Http.instance = new Http();
-    }
-
-    return Http.instance;
-  }
-}
-
-interface RequestParams {
-  instance: Http;
-  request: HttpRequestInit;
-}
-
-type HttpRequest = (url: string, args: Partial<RequestConfig>) => Promise<HttpSuccessResponse | HttpErrorResponse>;
-
-const makeRequest = async (params: RequestParams): Promise<HttpSuccessResponse | HttpErrorResponse> => {
-
-  try {
-
-    const response = await fetch(new Request(params.request.url, params.request)),
-          result = await params.instance.handleResponse(response);
-          
-    return JSON.parse(result);
-  } catch (error) {
-
-    return params.instance.handleError(error);
-  } 
-}
-
-const makeQueryStr = (params: undefined | RequestConfig['params']): string =>  {
-
-  if (params != undefined) {
-
-    return Object.keys(params).reduce((acc, curr, i) => {
-
-      const val = typeof params[curr] === 'string' ? params[curr] : '' + params[curr];
-      
-      return acc + `${i === 0 ? '?' : '&'}${curr}=${val}`;
-    }, '');
-  }
-
-  return '';
-}
-
-class HttpRequestInit implements RequestConfig {
-
-  method!: string;
-
-  url!: string;
-
-  headers?: Headers;
-
-  body?: string;
-
-  mode?: any;
-
-  cache?: any;
-
-  params?: {[key: string]: string};
-
-  constructor (url: string, args?: Partial<RequestConfig>) {
-
-    const instance = Http.getInstance();
-    
-    if (args && args.headers) {
-      
-      const headers = new Headers();
-
-      for (const contentType in args.headers) {
-        
-        headers.append(contentType, (args.headers as {[key: string]: string})[contentType]);
+        return JSON.parse(error);
+      } catch (err) {
+  
+        return error;
       }
+    } 
+  }
 
-      args.headers = headers;
-    }
+  async get (url: string, args: RequestInit): Promise<HttpResponse> {
 
-    Object.assign(this, args);
+    return await this.makeRequest(new HttpRequestInit(this.listeners, url, {...args, method: 'GET'}));
+  }
 
-    const init = (instance.listeners.interceptor as HTTPInterceptor)(this);
+  async post (url: string, args: RequestInit): Promise<HttpResponse> {
+  
+    return await this.makeRequest(new HttpRequestInit(this.listeners, url, {...args, method: 'POST'}));
+  }
 
-    if (this.body != undefined) {
-      
-      this.body = JSON.stringify(this.body);
-    }
+  static getInstance (): Http {
 
-    if (this.params != undefined) {
-
-      this.url = url + makeQueryStr(this.params);
-    }
+    return !Http.instance
+      ? Http.instance = new Http()
+      : Http.instance;
   }
 }
 
-export default {
-
-  get: async (url, args) => await makeRequest({instance: Http.getInstance(), request: new HttpRequestInit(url, args)}), 
-
-  post: async (url, args) => await makeRequest({instance: Http.getInstance(), request: new HttpRequestInit(url, args)})
-} as {[key: string]: HttpRequest}
-
-export const setApiUrl = (url: string): void => Http.setBaseUrl(url);
-
-export const getApiUrl = (path: string): string => Http.getBaseUrl(path);
-
-export const setDefaultContentType = (contentType: string): void => Http.setDefaultContentType(contentType);
-
-export const getDefaultContentType = (): string => Http.getDefaultContentType(); 
+export default Http.getInstance();
