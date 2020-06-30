@@ -6,7 +6,6 @@ export class HttpRequestInit {
   
   constructor (listeners: HTTPListeners, url: string, init?: HTTPRequestObject) {
 
-    console.log(init);
     if (init) {
 
       this.headers = new Headers();
@@ -22,10 +21,10 @@ export class HttpRequestInit {
 
       if (this.params != undefined) {
 
-        const arr = this.params;
+        const obj = {...this.params};
 
         this.url = url +  Object.keys(this.params).reduce((acc, curr, index) => 
-          acc + `${index == 0 ? '?' : '&'}${curr}=${'' + arr[curr]}`);
+          acc + `${index == 0 ? '?' : '&'}${curr}=${'' + obj[curr]}`);
       }
 
       if (this.body != undefined) {
