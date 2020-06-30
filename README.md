@@ -15,16 +15,16 @@ npm i simple-fetch-wrapper
 import http from 'simple-fetch-wrapper'
 ```
 
-### Example
+### API Examples
 
 ```
-   import http, { setApiUrl, getApiUrl, setDefaultContentType } from 'simple-fetch-wrapper'
+   import http from 'simple-fetch-wrapper'
 
-   setApiUrl(url: string);
+   http.setBaseUrl(url: string);
 
-   setDefaultContentType('application/json');
+   http.setDefaultContentType('application/json');
 
-   const url = getApiUrl('/api/v1/endpoint');
+   const url = http.getBaseUrl('/api/v1/endpoint');
 
    http.intercept(requestConfig => {
 
@@ -42,9 +42,31 @@ import http from 'simple-fetch-wrapper'
    http.emit('customEvent', data);
 
    http.detach('customEvent', Function);
-   
-   const response = await http.get(url, args?: {params: {key: value}})
-
-   const response = await http.post(url, body: {key: value}, headers?: {key: value});
 ```
+
+### Supports GET and POST
+
+```
+   const args = {
+      params: {post: 71}
+   };
+
+   const response = await http.get(url, args)
+
+
+   const args = {
+      headers: {'Content-Type': 'application/json'},
+      body: {name: 'Some name', id: 1}
+   };
+
+   const response = await http.post(url, args);
+```
+
+### Args
+
+| Properties   | Type                     |
+|--------------|:------------------------:|
+| headers      | {[key: string]: string}  |
+| body         | {[key: string]: any}     |
+| params       | {[key: string]: any}     |
 
