@@ -21,10 +21,10 @@ export class HttpRequestInit {
 
       if (this.params != undefined) {
 
-        const obj = {...this.params};
+        const params = {...this.params};
 
         this.url = url +  Object.keys(this.params).reduce((acc, curr, index) => 
-          acc + `${index == 0 ? '?' : '&'}${curr}=${'' + obj[curr]}`);
+          acc + `${index === 0 ? '?' : '&'}${curr}=${'' + params[curr]}`, '');
       }
 
       if (this.body != undefined) {
