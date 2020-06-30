@@ -57,7 +57,7 @@ import http from 'simple-fetch-wrapper'
    const args = {
       headers: {'Content-Type': 'application/json'},
       body: {name: 'Some name', id: 1}
-   };
+   }; 
 
    const response = await http.post(url, args);
 ```
