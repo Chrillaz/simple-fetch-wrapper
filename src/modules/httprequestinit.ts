@@ -6,10 +6,6 @@ export class HttpRequestInit {
   
   constructor (listeners: HTTPListeners, url: string, init?: HTTPRequestObject) {
 
-<<<<<<< HEAD
-=======
-    console.log(init);
->>>>>>> 434116d1a11d19d645aa396fc924fbcd5c52f14e
     if (init) {
 
       this.headers = new Headers();
@@ -25,17 +21,10 @@ export class HttpRequestInit {
 
       if (this.params != undefined) {
 
-<<<<<<< HEAD
         const params = {...this.params};
 
         this.url = url +  Object.keys(this.params).reduce((acc, curr, index) => 
           acc + `${index === 0 ? '?' : '&'}${curr}=${'' + params[curr]}`, '');
-=======
-        const arr = this.params;
-
-        this.url = url +  Object.keys(this.params).reduce((acc, curr, index) => 
-          acc + `${index == 0 ? '?' : '&'}${curr}=${'' + arr[curr]}`);
->>>>>>> 434116d1a11d19d645aa396fc924fbcd5c52f14e
       }
 
       if (this.body != undefined) {
