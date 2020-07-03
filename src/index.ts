@@ -28,7 +28,7 @@ export interface HTTPRequestInit extends HTTPRequestObject {
 }
 
 export interface HTTPResponseObject {
-  success: boolean; 
+  ok: boolean; 
   status: number; 
   data?: any; 
   statusText?: string
@@ -36,7 +36,7 @@ export interface HTTPResponseObject {
 
 export interface HTTPListeners {
   [key: string]: Function[] | (HTTPListeners['interceptor'] | HTTPListeners['isFetching']);
-  interceptor: (config: HTTPRequestInit) => HttpRequestInit;
+  interceptor: (config: HTTPRequestInit) => HTTPRequestInit;
   isFetching: (status: boolean) => boolean;
 }
 
@@ -44,46 +44,37 @@ export interface HttpResponse extends HTTPResponseObject {}
 
 export class HttpResponse {
 
-  constructor (response: Response, json: any) {
+  constructor ({ok, status, statusText}: Response, json: any) {
     
-    this.success = response.ok;
+    Object.assign(this, {ok, status});
 
-    this.status = response.status;
-
-    this.success
+    this.ok
       ? this.data = json
-      : this.statusText = response.statusText ? response.statusText : json.error || '';
+      : this.statusText = statusText ? statusText : json.error || '';
   }
 }
 
-export interface HttpRequestInit extends HTTPRequestInit {};
+const httpRequestInit = async ({interceptor}: HTTPListeners, url: string, init?: HTTPRequestObject): Promise<HTTPRequestInit> => {
 
-export class HttpRequestInit {
-  
-  constructor ({interceptor}: HTTPListeners, url: string, init?: HTTPRequestObject) {
+  const headers = new Headers();
 
-    const properties = {headers: new Headers(), url, ...init} as HTTPRequestInit;
+  if (init && init.headers) {
 
-    new Promise<HTTPRequestInit>((resolve) => resolve(interceptor != undefined ? interceptor(properties) : properties))
+    for (const property in init.headers) {
 
-    .then(requestInit => {
-
-      Object.assign(this, requestInit);
-
-      if (init) {
-
-        this.url = this.params ? this.url + Object.keys(this.params).reduce((acc, curr, index) =>
-          acc + `${index === 0 ? '?' : '&'}${curr}=${'' + this.params![curr]}`, '') : this.url;
-
-        this.body = this.body ? JSON.stringify(this.body) : undefined;
-
-        for (const property in this.headers) {
-
-          this.headers[property] = this.headers[property];
-        }
-      }
-    });
+      headers[property] = init.headers[property];
+    }
   }
+
+  const request = {headers, url, ...init} as HTTPRequestInit;
+
+  const requestInit = await new Promise<HTTPRequestInit>((resolve) => resolve(interceptor ? interceptor(request) : request));
+
+  requestInit.url = requestInit.params ? requestInit.url + Object.keys(requestInit.params).reduce((acc, curr, index) => acc + `${index === 0 ? '?' : '&'}${curr}=${'' + requestInit.params![curr]}`, '') : requestInit.url;
+
+  requestInit.body = requestInit.body ? JSON.stringify(requestInit.body) : undefined;
+  
+  return requestInit;
 }
 
 class HttpEmitter {
@@ -167,10 +158,9 @@ export class Http extends HttpEmitter {
   public async makeRequest ({url, ...rest}: Omit<HTTPRequestInit, 'params'>): Promise<HTTPResponseObject> {
 
     try {
-      
+
       const response = await fetch(url, rest),
             json = await response.json();
-
       return JSON.parse(JSON.stringify(new HttpResponse(response, json)));
     } catch (error) {
 
@@ -184,14 +174,14 @@ export class Http extends HttpEmitter {
     } 
   }
 
-  public async get (url: string, args = {} as HTTPRequestObject): Promise<HTTPResponseObject> {
-    
-    return await this.makeRequest(new HttpRequestInit(this.listeners, url, {...args, method: 'GET'}));
+  public async get (url: string, args?: HTTPRequestObject): Promise<HTTPResponseObject> {
+
+    return await this.makeRequest(await httpRequestInit(this.listeners, url, {...args, method: 'GET'}));
   }
 
-  public async post (url: string, args = {} as HTTPRequestObject): Promise<HTTPResponseObject> {
+  public async post (url: string, args?: HTTPRequestObject): Promise<HTTPResponseObject> {
   
-    return await this.makeRequest(new HttpRequestInit(this.listeners, url, {...args, method: 'POST'}));
+    return await this.makeRequest(await httpRequestInit(this.listeners, url, {...args, method: 'POST'}));
   }
 
   public static getInstance (): Http {
