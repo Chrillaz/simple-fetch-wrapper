@@ -25,8 +25,8 @@ import http from 'simple-fetch-wrapper'
    http.setDefaultContentType('application/json');
 
    const url = http.getBaseUrl('/api/v1/endpoint');
-
-   http.intercept(requestConfig => {
+   
+   http.interceptor(requestConfig => {
 
       console.log(requestConfig);
 
