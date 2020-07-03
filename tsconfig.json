@@ -16,7 +16,8 @@
     "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "removeComments": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "src/__tests__"]
