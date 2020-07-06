@@ -37,7 +37,7 @@ export interface HTTPResponseObject {
 export interface HTTPListeners {
   [key: string]: Function[] | (HTTPListeners['interceptor'] | HTTPListeners['isFetching']);
   interceptor: (config: HTTPRequestInit) => HTTPRequestInit;
-  isFetching: (status: boolean) => boolean;
+  isFetching: (status: boolean) => void;
 }
 
 export interface HttpResponse extends HTTPResponseObject {}
@@ -56,39 +56,37 @@ export class HttpResponse {
 
 const httpRequestInit = async ({interceptor}: HTTPListeners, url: string, init?: HTTPRequestObject): Promise<HTTPRequestInit> => {
 
-  const headers = new Headers();
+  const request = {headers: new Headers(), url, ...init} as HTTPRequestInit;
 
   if (init && init.headers) {
 
     for (const property in init.headers) {
 
-      headers[property] = init.headers[property];
+      request.headers[property] = init.headers[property];
     }
   }
 
-  const request = {headers, url, ...init} as HTTPRequestInit;
-
   const requestInit = await new Promise<HTTPRequestInit>((resolve) => resolve(interceptor ? interceptor(request) : request));
 
-  requestInit.url = requestInit.params ? requestInit.url + Object.keys(requestInit.params).reduce((acc, curr, index) => acc + `${index === 0 ? '?' : '&'}${curr}=${'' + requestInit.params![curr]}`, '') : requestInit.url;
-
-  requestInit.body = requestInit.body ? JSON.stringify(requestInit.body) : undefined;
-  
-  return requestInit;
+  return {
+    ...requestInit,
+    url: requestInit.params ? requestInit.url + Object.keys(requestInit.params).reduce((acc, curr, index) => acc + `${index === 0 ? '?' : '&'}${curr}=${'' + requestInit.params![curr]}`, '') : requestInit.url,
+    body: requestInit.body ? JSON.stringify(requestInit.body) : undefined,
+  } as HTTPRequestInit;
 }
 
 class HttpEmitter {
 
   public listeners = {} as HTTPListeners;
   
-  public interceptor (fn: (config: HTTPRequestInit) => HTTPRequestInit) {
+  public interceptor (fn: (config: HTTPRequestInit) => HTTPRequestInit): HTTPListeners['interceptor'] {
     
     return this.listeners.interceptor = fn;
   }
   
-  public isFetching (fn: (status: boolean) => boolean) {
+  public isFetching (fn: (status: boolean) => void): void {
     
-    return this.listeners.isFetching = fn;
+    this.listeners.isFetching = fn;
   }
   
   public emit (event: string, args: any) {
@@ -156,6 +154,8 @@ export class Http extends HttpEmitter {
   }
 
   public async makeRequest ({url, ...rest}: Omit<HTTPRequestInit, 'params'>): Promise<HTTPResponseObject> {
+    
+    this.listeners.isFetching(true);
 
     try {
 
@@ -171,7 +171,10 @@ export class Http extends HttpEmitter {
   
         return error;
       }
-    } 
+    } finally {
+
+      this.listeners.isFetching(false);
+    }
   }
 
   public async get (url: string, args?: HTTPRequestObject): Promise<HTTPResponseObject> {
