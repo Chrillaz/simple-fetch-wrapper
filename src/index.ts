@@ -91,9 +91,12 @@ class HttpEmitter {
   
   public emit (event: string, args: any) {
 
-    return this.listeners[event] != undefined
-      ? (this.listeners[event] as Function[]).forEach(f => f(args))
-      : false;
+    if (this.listeners[event] != undefined) {
+
+      return this.listeners[event].length
+        ? (this.listeners[event] as Function[]).forEach(f => f(args))
+        : (this.listeners[event] as Function)(args);
+    }
   }
 
   public on (event: string, fn: Function) {
