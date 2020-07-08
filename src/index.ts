@@ -91,7 +91,7 @@ class HttpEmitter {
   
   public emit (event: string, args: any) {
 
-    return this.listeners[event].length > 0
+    return this.listeners[event] != undefined
       ? (this.listeners[event] as Function[]).forEach(f => f(args))
       : false;
   }
@@ -154,8 +154,8 @@ export class Http extends HttpEmitter {
   }
 
   public async makeRequest ({url, ...rest}: Omit<HTTPRequestInit, 'params'>): Promise<HTTPResponseObject> {
-    
-    this.listeners.isFetching(true);
+      
+    this.emit('isFetching', true);
 
     try {
 
@@ -173,7 +173,7 @@ export class Http extends HttpEmitter {
       }
     } finally {
 
-      this.listeners.isFetching(false);
+      this.emit('isFetching', false);
     }
   }
 
