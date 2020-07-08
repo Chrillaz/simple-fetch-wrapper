@@ -90,10 +90,10 @@ class HttpEmitter {
   }
   
   public emit (event: string, args: any) {
-
+    
     if (this.listeners[event] != undefined) {
 
-      return this.listeners[event].length
+      return Array.isArray(this.listeners[event]) && this.listeners[event].length > 0
         ? (this.listeners[event] as Function[]).forEach(f => f(args))
         : (this.listeners[event] as Function)(args);
     }
